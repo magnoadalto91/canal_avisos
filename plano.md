@@ -8,6 +8,22 @@ pessoal e como validação. Nada aqui invalida o que está no ar.
 
 ---
 
+## 0. Decisões tomadas
+
+| Questão | Decisão |
+|---|---|
+| Gratuito inclui o alerta básico? | **Sim.** O grátis já salva; o pago amplia alcance |
+| Modo só-SSID, sem permissão de localização? | **Sim**, opção de primeira classe |
+| Chat próprio? | **Não.** Telegram como canal principal, WhatsApp no plano pago |
+| Mercado | Começa no Brasil, arquitetura pensada para ser mundial |
+
+A terceira é a que mais muda o cronograma: **não construir chat elimina o item
+mais caro e mais demorado do produto**. Em troca, cria dependência de terceiros e
+exige que o círculo tenha Telegram — barreira real fora do Brasil, tratada na
+seção 4.
+
+---
+
 ## 1. Por que o PWA acaba aqui
 
 O limite não é o navegador parecer amador. É que **ninguém que paga vai
@@ -76,37 +92,88 @@ O que **muda**:
 | Chave opaca no localStorage | autenticação de verdade | recuperação de conta, múltiplos aparelhos |
 | Cron varrendo todos os usuários | consulta indexada por janela aberta | varrer todo mundo a cada 15 min não escala |
 | cron-job.org | agendador próprio ou fila | confiabilidade vira contrato |
-| Telegram | chat interno + push | ver seção 4 |
+| Telegram só | Telegram + push + WhatsApp no pago | ver seção 4 |
+| — | fila de entrega com retentativa | alerta que falha em silêncio é o pior defeito possível |
 
-**Ponto de atenção:** chat em tempo real não roda em serverless na Vercel —
-função serverless não segura WebSocket. Precisa de serviço à parte (Supabase
-Realtime, Ably, Pusher) ou de um processo dedicado.
+**O que a decisão do chat economiza:** sem chat próprio, não é preciso serviço de
+tempo real (Supabase Realtime, Ably, Pusher) nem processo dedicado segurando
+WebSocket — função serverless não segura conexão persistente. Isso tira do
+caminho a parte mais cara da infra.
+
+**Fila de entrega:** com WhatsApp e SMS entrando, envio vira operação que falha.
+Precisa de fila com retentativa e registro do que foi entregue. Um alerta que se
+perdeu em silêncio é o pior defeito que este produto pode ter.
 
 **Escala do cron:** hoje ele lê todos os usuários a cada execução. Com volume,
 vira consulta por "quem tem janela aberta agora", indexada por fuso e horário.
 
 ---
 
-## 4. Chat interno e push
+## 4. Canais de entrega
 
-Sai Telegram e WhatsApp. Motivos além do controle: o Telegram exige que cada
-pessoa tenha conta e entre num grupo, e o canal do WhatsApp depende de
-biblioteca não-oficial com risco de banimento.
+Não haverá chat próprio. **Telegram é o canal principal no plano gratuito,
+WhatsApp entra no pago**, e push para o app é a base que funciona em qualquer
+lugar do mundo.
 
-O que o chat precisa ter, e que o grupo do Telegram dá de graça hoje:
+### Telegram — principal, gratuito
 
-- as pessoas conversarem **entre si** quando o aviso não chega (isso é metade do
-  produto — a coordenação acontece onde o alarme toca)
-- confirmação de leitura, para saber que alguém viu
-- **botão de "estou indo ver"**, para não acontecer de cinco pessoas ligarem e
-  nenhuma ir
+Mantém o que já funciona hoje: grupo, custo zero, sem limite de mensagens, e as
+pessoas conversam **entre si** quando o aviso não chega. Essa conversa é metade
+do produto — a coordenação precisa acontecer no mesmo lugar onde o alarme toca.
 
-Push: FCM cobrindo Android e iOS (via APNs). O alerta precisa sair como
-notificação **crítica/prioritária**, senão o Android agrupa e silencia. No iOS,
-notificação crítica que fura o modo Não Perturbe exige autorização especial da
-Apple — vale pedir, é exatamente o caso de uso previsto.
+Custo real da escolha: cada pessoa do círculo precisa ter Telegram. No Brasil
+isso é aceitável. Em mercados onde o Telegram é pouco usado, é barreira de
+adoção séria — ver seção 7.
 
----
+### WhatsApp — plano pago, e com uma limitação que muda o desenho
+
+**Só a Cloud API oficial da Meta.** Nada de Baileys ou Evolution API: além de
+violar os termos, seria pôr o alerta de segurança de um cliente pagante num
+canal que pode ser banido a qualquer momento.
+
+E a Cloud API tem uma restrição que precisa entrar no desenho, não no rodapé:
+
+> **Ela não posta em grupo nem em canal.** Só mensagem individual, e fora da
+> janela de 24h apenas com template aprovado pela Meta.
+
+Consequência: **WhatsApp entrega alcance, não coordenação.** Cada pessoa recebe
+sua mensagem separada e ninguém vê a resposta de ninguém. Quem quiser a conversa
+acontecendo continua no Telegram.
+
+Isso não invalida a decisão — pelo contrário, encaixa bem no modelo de
+assinatura, porque:
+
+- tem **custo por mensagem** cobrado pela Meta, então a cobrança é consequência
+  de um custo real e não de um limite artificial
+- resolve o caso "minha mãe não vai instalar Telegram", que é exatamente a dor
+  que justifica pagar
+
+Preparar antes: conta no Meta Business, verificação da empresa e aprovação dos
+templates. São semanas, e é trabalho de empresa, não de usuário. Comece cedo.
+
+### Push — a base mundial
+
+Notificação para o próprio app, via FCM cobrindo Android e iOS. É o único canal
+que funciona em qualquer país sem depender de o círculo usar um mensageiro
+específico, e é grátis.
+
+O alerta precisa sair como notificação **prioritária**, senão o Android agrupa e
+silencia. No iOS, notificação crítica que fura o Não Perturbe exige autorização
+especial da Apple — vale pedir, este é literalmente o caso de uso previsto.
+
+### A coordenação sem construir um chat
+
+O que importa quando o alerta dispara não é conversar, é **saber que alguém
+assumiu**. Sem isso, ou cinco pessoas ligam ao mesmo tempo, ou nenhuma vai.
+
+Isso se resolve com uma tela e um botão, não com um produto de mensageria:
+
+- o alerta abre uma tela com quem foi avisado
+- botão **"estou indo ver"**
+- quem apertou aparece para todos, e os outros param de se preocupar
+
+É barato, entrega a metade do produto que interessa, e mantém a porta aberta
+para um chat de verdade depois, se os dados mostrarem que falta.
 
 ## 5. "Dá para avisar sem internet?"
 
@@ -146,6 +213,26 @@ morre.
 ---
 
 ## 6. Ideias para justificar assinatura
+
+### O corte entre grátis e pago
+
+Decidido: **o alerta básico é gratuito para sempre**. Cobrar por ele seria vender
+tranquilidade a prazo, e um app de segurança que só protege quem paga tem um
+problema ético antes de ter um problema comercial.
+
+| Grátis | Pago |
+|---|---|
+| alerta de ausência completo | **WhatsApp** (custo por mensagem da Meta) |
+| Telegram, sem limite de mensagens | escalonamento por SMS e chamada de voz |
+| push para o app | modo trajeto |
+| 1 local, 1 rotina, círculo até 3 pessoas | vários locais e rotinas, círculo maior |
+| modo só-SSID | localização durante o alerta |
+
+O princípio: **o gratuito salva, o pago amplia alcance e cobre mais situações.**
+Repare que quase tudo na coluna paga tem custo marginal real (WhatsApp, SMS,
+voz) — a cobrança é consequência de um custo, não de um limite inventado.
+
+### Por que isso ainda não basta
 
 O problema central: **o valor é invisível**. Ninguém sente falta de um seguro que
 nunca acionou. É por isso que o Life360 empacota com localização, relatório de
@@ -200,7 +287,54 @@ o pago adicione alcance.
 
 ---
 
-## 7. Riscos e o que decidir antes de codar
+## 7. Ser mundial: o que muda
+
+Começar pelo Brasil e mirar o mundo tem uma consequência principal, e ela bate
+justamente na decisão do canal.
+
+### O canal não é o mesmo em todo lugar
+
+| Região | Canal que funciona |
+|---|---|
+| Brasil, Índia, Irã, leste europeu | Telegram e WhatsApp |
+| América Latina, Europa, Índia | WhatsApp domina |
+| EUA e Canadá | SMS e iMessage; Telegram é nicho |
+| Alemanha, norte da Europa | WhatsApp e Signal |
+
+**Telegram como canal principal é uma decisão brasileira, e está certa para o
+lançamento.** Mas nos EUA ela quebra: pedir que a mãe de alguém instale Telegram
+para receber um alerta é conversão perdida.
+
+Por isso o **push para o app é a base mundial**, e o canal externo vira
+preferência por região. A boa notícia é que a arquitetura já está pronta para
+isso: a interface `Notifier` e o `broadcast()` que existem hoje foram feitos
+justamente para trocar o entregador sem tocar na regra de decisão.
+
+Ordem sugerida: Telegram e push no lançamento, WhatsApp junto com o plano pago,
+SMS quando os EUA entrarem no mapa.
+
+### O resto
+
+**Fuso horário** já está resolvido — o app usa IANA e a janela que cruza a
+meia-noite funciona em qualquer fuso. Foi de graça.
+
+**Idioma** não está. Mensagens, textos do app e os templates do WhatsApp
+precisam de i18n desde cedo; template da Meta é aprovado **por idioma**, então
+cada novo idioma é um novo ciclo de aprovação.
+
+**Preço** precisa ser regional. R$ 14,90 no Brasil não vira US$ 14,90 nos EUA
+nem em conversão nem em percepção. E o custo de SMS e WhatsApp varia muito por
+país, o que pode inverter a margem de um plano.
+
+**LGPD e GDPR.** Localização e rede de contatos são dados sensíveis, e o GDPR é
+a régua mais alta. Vale desenhar para ele desde o começo: retenção curta, dado
+mínimo, exclusão de conta funcionando de verdade. Aqui o projeto já começa bem —
+guardar apenas hash de SSID e de IP, nunca o valor, é exatamente o tipo de
+decisão que o GDPR premia.
+
+---
+
+## 8. Riscos
 
 **Responsabilidade.** No instante em que se cobra, "app de segurança" vira
 promessa. Termos explícitos de que não é serviço de emergência, e o tom que já
@@ -218,17 +352,9 @@ alarme por ausência, não recursos.
 **Retenção.** Se a única coisa que o app faz é ficar quieto, ele é desinstalado.
 O modo trajeto existe nesta lista principalmente por isso.
 
-### Decidir antes de começar
-
-1. O gratuito inclui o alerta básico? (recomendo que sim)
-2. Modo só-SSID sem permissão de localização vai existir como opção?
-3. Chat próprio ou integração com o que a pessoa já usa? (o chat próprio custa
-   caro e é o que mais atrasa o lançamento)
-4. Mercado inicial: Brasil apenas, ou já pensar em internacional?
-
 ---
 
-## 8. O que aproveitar do que já existe
+## 9. O que aproveitar do que já existe
 
 Não é pouco, e é a parte que costuma dar errado:
 
