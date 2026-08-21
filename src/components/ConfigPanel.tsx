@@ -239,9 +239,11 @@ export function ConfigPanel({
           />
         </label>
         <p className="hint" style={{ marginTop: -8 }}>
-          Precisa ser maior que o intervalo do gatilho periódico do celular.
-          Automação de 15 em 15 min com este campo em 60 dá margem folgada para
-          um ou dois disparos perdidos.
+          Tem que ser maior que o intervalo do gatilho periódico, senão o sinal
+          expira entre um disparo e outro. Mas quanto maior, maior também a
+          janela em que você já saiu de casa e o app ainda acha que está — se a
+          macro de saída falhar, é este número que segura. Com automação de 15
+          em 15 min, 35 tolera um disparo perdido sem abrir margem demais.
         </p>
       </div>
 

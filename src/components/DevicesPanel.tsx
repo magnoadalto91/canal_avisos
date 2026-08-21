@@ -126,14 +126,18 @@ export function DevicesPanel({
         <ol className="steps">
           <li>
             <strong>Chegou:</strong> gatilho Mudança de estado do Wi-Fi →
-            Conectado à rede → ação HTTP Request GET → a URL acima com{" "}
-            <code>event=wifi-connected</code>. Adicione a restrição
-            &ldquo;conectado à rede de casa&rdquo;.
+            Conectado à rede → escolha sua rede → ação HTTP Request GET → a URL
+            acima com <code>event=wifi-connected</code>.{" "}
+            <strong>Sem restrição</strong>: ela é avaliada no meio da transição
+            de conexão, quando o Android ainda não reporta o SSID, e engole o
+            disparo em silêncio.
           </li>
           <li>
-            <strong>Saiu:</strong> mesmo gatilho, opção Desconectado da rede →
-            mesma URL com <code>event=wifi-disconnected</code>. Esta é a única
-            sem restrição: no momento em que dispara você já saiu da rede.
+            <strong>Saiu:</strong> mesmo gatilho, opção Desconectado da rede,
+            em <strong>qualquer rede</strong> → mesma URL com{" "}
+            <code>event=wifi-disconnected</code>. Sem restrição e sem escolher
+            rede: no instante do disparo você já saiu, e o Android costuma já
+            ter descartado o SSID.
           </li>
           <li>
             <strong>Mantém vivo:</strong> gatilho Intervalo Regular de 15 min,

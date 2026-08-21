@@ -145,9 +145,9 @@ Toque no ✓ (salvar) → dê o nome **Cheguei em casa** → OK.
 ### Macro 2 — "Saí de casa"
 
 - **Gatilho:** Conectividade → **Mudança de estado do Wi-Fi** →
-  **Desconectado da rede** (*Disconnected from Network*) → marque sua rede se
-  ele deixar
-- **Restrição:** **nenhuma** — leia o porquê abaixo
+  **Desconectado da rede** (*Disconnected from Network*) → **qualquer rede**,
+  não escolha uma específica
+- **Restrição:** **nenhuma**
 - **URL:** `event=wifi-disconnected`
 
 ```
@@ -156,16 +156,36 @@ https://SEU-APP.vercel.app/api/heartbeat?t=SEU_TOKEN&event=wifi-disconnected&ssi
 
 Nome: **Saí de casa**.
 
-> **Por que esta macro não leva restrição.** No instante em que ela dispara você
-> acabou de sair da rede, então uma restrição de "conectado ao wifi de casa"
-> seria falsa e bloquearia a própria macro.
+> **Por que esta macro não leva restrição, nem rede específica.**
 >
-> Ficar sem restrição aqui é seguro porque o erro possível vai na direção certa:
-> um "saí" disparado à toa marca você como fora de casa. O pior que acontece é o
-> app não mandar a mensagem de tranquilidade e o alerta de ausência disparar — 
-> chato, mas te procuram. O contrário, um "cheguei" falso, calaria o alarme com
-> você na rua. Por isso as macros que afirmam **presença** (1 e 3) são as que
-> levam restrição.
+> **Restrição:** no instante em que ela dispara você acabou de sair da rede, então
+> "conectado ao wifi de casa" é sempre falso e bloquearia a própria macro.
+>
+> **Rede específica:** ao desconectar, o Android muitas vezes já descartou o
+> SSID. O MacroDroid não consegue casar com a rede escolhida e engole o disparo.
+> Deixe em qualquer rede.
+>
+> Nos dois casos o afrouxamento é seguro, porque o erro possível vai na direção
+> certa: sair de **qualquer** wifi significa que você não está mais no wifi de
+> casa, que é exatamente o que queremos registrar. E um "saí" disparado à toa te
+> marca como fora — o pior que acontece é o alerta de ausência disparar e alguém
+> te procurar. O contrário, um "cheguei" falso, calaria o alarme com você na rua.
+> Por isso só as macros que afirmam **presença** (1 e 3) precisam de rigor.
+
+#### Por que esta macro importa mais do que parece
+
+É tentador achar que ela é decorativa, já que o app avisa na chegada. Não é.
+
+Sem ela, considere: às 21:50 o gatilho periódico dispara, você está em casa.
+Às 21:55 você sai. Às 22:00 a janela abre e o servidor olha o último sinal —
+"em casa", com cinco minutos de idade, fresquíssimo. Ele manda **"chegou em
+casa"** para o grupo e encerra a noite.
+
+Você passa a noite fora e ninguém é avisado, porque a noite já foi resolvida.
+
+A macro de saída fecha essa brecha na hora. Sem ela, a única proteção é o sinal
+envelhecer até passar do limite de frescor — e até lá existe uma janela de erro
+do tamanho desse limite.
 
 ---
 
@@ -282,6 +302,19 @@ sistema.
 | `"network":"unknown"`, motivo `SSID de casa ainda não cadastrado` | falta preencher o SSID nos Ajustes do app |
 | `401` | token errado, revogado, ou você copiou a URL cortada |
 | nada acontece | a macro está desativada, ou o MacroDroid foi morto pelo sistema |
+
+### A chegada funciona mas a saída nunca aparece
+
+Duas causas, nesta ordem:
+
+1. **Tem restrição na macro 2.** Bloqueio garantido: no instante do disparo você
+   já saiu da rede, então qualquer restrição de "conectado" é falsa. Apague.
+2. **O gatilho está preso a uma rede específica.** Ao desconectar o Android
+   costuma já ter descartado o SSID, e o MacroDroid não casa com a rede
+   escolhida. Troque para **qualquer rede**.
+
+Não é problema cosmético — leia acima por que a macro de saída evita um "chegou
+em casa" falso quando você sai poucos minutos antes da janela abrir.
 
 ### A saída funciona mas a chegada nunca aparece
 
