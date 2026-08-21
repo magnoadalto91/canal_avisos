@@ -117,14 +117,23 @@ export function DevicesPanel({
           saída; a terceira é a que mantém o sinal fresco, e sem ela a checagem
           das 22:00 encontra um sinal velho e não confirma nada.
         </p>
+        <div className="banner err" style={{ marginBottom: 14 }}>
+          Use o gatilho <strong>Mudança de estado do Wi-Fi</strong>, nunca{" "}
+          <strong>Wi-Fi dentro/fora do alcance</strong>. O segundo dispara quando
+          a rede só aparece na varredura — na calçada, no carro em frente ao
+          prédio — e mandaria &ldquo;chegou em casa&rdquo; com você ainda na rua.
+        </div>
         <ol className="steps">
           <li>
-            <strong>Chegou:</strong> gatilho Wi-Fi conectado à sua rede → ação
-            HTTP Request GET → a URL acima com <code>event=wifi-connected</code>.
+            <strong>Chegou:</strong> gatilho Mudança de estado do Wi-Fi →
+            Conectado à rede → ação HTTP Request GET → a URL acima com{" "}
+            <code>event=wifi-connected</code>. Adicione a restrição
+            &ldquo;conectado à rede de casa&rdquo;.
           </li>
           <li>
-            <strong>Saiu:</strong> gatilho Wi-Fi desconectado → mesma URL com{" "}
-            <code>event=wifi-disconnected</code>.
+            <strong>Saiu:</strong> mesmo gatilho, opção Desconectado da rede →
+            mesma URL com <code>event=wifi-disconnected</code>. Esta é a única
+            sem restrição: no momento em que dispara você já saiu da rede.
           </li>
           <li>
             <strong>Mantém vivo:</strong> gatilho Intervalo Regular de 15 min,

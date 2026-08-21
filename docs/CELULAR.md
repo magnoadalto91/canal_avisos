@@ -69,10 +69,35 @@ Você vai ver três seções: **Gatilhos**, **Ações**, **Restrições**.
 #### Gatilho
 
 1. Toque no `+` da seção **Gatilhos**
-2. Categoria **Conectividade** (*Connectivity*) → **Conexão Wi-Fi** (*Wifi Connection*)
-   - se não achar, busque por `wifi`
+2. Categoria **Conectividade** (*Connectivity*) → **Mudança de estado do Wi-Fi**
+   (*Wifi State Change*)
 3. Escolha **Conectado à rede** (*Connected to Network*)
-4. Aparece a lista de redes conhecidas → **marque a sua** → OK
+4. Se aparecer a lista de redes, **marque a sua** → OK.
+   Se não aparecer, tudo bem — a restrição do passo seguinte resolve.
+
+> ### Não use "Wi-Fi dentro/fora do alcance"
+>
+> Existe um gatilho parecido chamado **Wi-Fi dentro/fora do alcance** (*Wifi
+> In/Out Of Range*). Ele dispara quando a rede apenas **aparece na varredura**,
+> sem você estar conectado — na calçada, no carro em frente ao prédio, na
+> escada do vizinho.
+>
+> Usar esse gatilho aqui significaria mandar "chegou em casa" com você ainda na
+> rua. É o erro na direção mais perigosa que este app tem: tranquilizar o grupo
+> sem base nenhuma. Use **Mudança de estado do Wi-Fi**, que só dispara quando a
+> conexão realmente acontece.
+
+#### Restrição (importante)
+
+1. Toque no `+` da seção **Restrições** (*Constraints*)
+2. Busque por `wifi` → escolha a restrição de rede Wi-Fi
+3. Configure para **conectado à sua rede de casa**
+
+Por que, se o gatilho já é da sua rede: porque nem toda versão do MacroDroid
+deixa escolher o SSID no gatilho. Se ele disparar em **qualquer** conexão Wi-Fi
+e a URL levar o nome da sua casa fixo, o servidor receberia "estou em casa"
+enquanto você conecta no Wi-Fi de um bar. A restrição fecha esse buraco de
+uma vez, e não custa nada quando o gatilho já está certo.
 
 #### Ação
 
@@ -88,10 +113,6 @@ https://SEU-APP.vercel.app/api/heartbeat?t=SEU_TOKEN&event=wifi-connected&ssid=S
 
 5. Não preencha corpo, cabeçalho nem nada. Só a URL. OK
 
-#### Restrições
-
-Nenhuma. Deixe vazio.
-
 #### Salvar
 
 Toque no ✓ (salvar) → dê o nome **Cheguei em casa** → OK.
@@ -100,16 +121,28 @@ Toque no ✓ (salvar) → dê o nome **Cheguei em casa** → OK.
 
 ### Macro 2 — "Saí de casa"
 
-Idêntica à primeira, com duas diferenças:
-
-- **Gatilho:** Conexão Wi-Fi → **Desconectado da rede** (*Disconnected from Network*) → marque sua rede
-- **URL:** troque para `event=wifi-disconnected`
+- **Gatilho:** Conectividade → **Mudança de estado do Wi-Fi** →
+  **Desconectado da rede** (*Disconnected from Network*) → marque sua rede se
+  ele deixar
+- **Restrição:** **nenhuma** — leia o porquê abaixo
+- **URL:** `event=wifi-disconnected`
 
 ```
 https://SEU-APP.vercel.app/api/heartbeat?t=SEU_TOKEN&event=wifi-disconnected&ssid=SUA_REDE
 ```
 
 Nome: **Saí de casa**.
+
+> **Por que esta macro não leva restrição.** No instante em que ela dispara você
+> acabou de sair da rede, então uma restrição de "conectado ao wifi de casa"
+> seria falsa e bloquearia a própria macro.
+>
+> Ficar sem restrição aqui é seguro porque o erro possível vai na direção certa:
+> um "saí" disparado à toa marca você como fora de casa. O pior que acontece é o
+> app não mandar a mensagem de tranquilidade e o alerta de ausência disparar — 
+> chato, mas te procuram. O contrário, um "cheguei" falso, calaria o alarme com
+> você na rua. Por isso as macros que afirmam **presença** (1 e 3) são as que
+> levam restrição.
 
 ---
 
@@ -135,17 +168,20 @@ Igual às outras, com `event=periodic`:
 https://SEU-APP.vercel.app/api/heartbeat?t=SEU_TOKEN&event=periodic&ssid=SUA_REDE
 ```
 
-#### Restrição — este passo é o que impede o alarme falso
+#### Restrição — sem isto a macro mente
 
 1. Toque no `+` da seção **Restrições** (*Constraints*)
-2. Categoria **Conectividade** → a restrição de Wi-Fi
-   - busque por `wifi` se precisar
-3. Configure para **conectado à sua rede**
+2. Busque por `wifi` → escolha a restrição de rede Wi-Fi
+3. Configure para **conectado à sua rede de casa**
 
-Sem esta restrição, a macro dispararia de 15 em 15 minutos **também quando você
-estiver na rua**. O servidor veria seu IP da operadora e concluiria "fora de
-casa" — não é o fim do mundo, mas é tráfego e bateria à toa, e polui o histórico
-a ponto de você não conseguir mais depurar nada olhando para ele.
+Esta é a restrição mais importante das três macros. O gatilho é só um relógio:
+ele dispara de 15 em 15 minutos **em qualquer lugar do mundo**. Como a URL leva
+o nome da sua rede fixo, sem a restrição o servidor receberia "estou em casa" a
+cada 15 minutos enquanto você estivesse na rua — e nunca mandaria alerta nenhum,
+porque para ele você estaria sempre em casa.
+
+Ou seja: sem esta restrição o app não fica ruim, ele fica **inútil e mentiroso**,
+exatamente na noite em que você precisaria dele.
 
 #### Salvar
 
@@ -195,8 +231,24 @@ Desligue o Wi-Fi, espere 10 segundos, ligue de novo. Isso deve disparar a macro
 ### Teste 3 — o que o servidor viu
 
 No app, aba **Histórico** → seção **Sinais recebidos**. Os disparos têm que
-aparecer ali, com o motivo. É o único teste que vale, porque é o único que
-prova a corrente inteira.
+aparecer ali, com o motivo. É o que prova a corrente inteira.
+
+### Teste 4 — o mais importante: prove que ele sabe dizer "não"
+
+Os testes acima só provam que o app avisa quando você **está** em casa. Isso é
+a metade fácil. O que protege você é ele **não** avisar quando você não está.
+
+1. Desligue o Wi-Fi e fique só nos dados móveis
+2. Espere uns 20 minutos (mais que um ciclo da macro 3)
+3. Abra a aba **Histórico**
+
+O que tem que acontecer: **nenhum sinal novo com "Em casa"**. Se aparecer
+qualquer coisa marcada como em casa enquanto você está na rede móvel, a
+restrição da macro 3 não está funcionando — e o app inteiro perde o sentido,
+porque ele nunca mais mandaria um alerta.
+
+Vale repetir esse teste uma vez fora de casa, de verdade, antes de confiar no
+sistema.
 
 ### O que cada resposta significa
 
