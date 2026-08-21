@@ -256,6 +256,93 @@ async function run() {
     vazamento.data.config?.displayName === "Ana",
     vazamento.data.config?.displayName,
   );
+  console.log("\n8. sinal do app: descartado quando não determina nada");
+
+  const u5 = await req("/api/user", { method: "POST", body: { displayName: "Diego" } });
+  const key5 = u5.data.userKey;
+  await req("/api/config", {
+    method: "PATCH",
+    key: key5,
+    body: {
+      timezone: "UTC",
+      windowStart: utcHHMM(-30),
+      windowEnd: utcHHMM(+120),
+      homeSsid: "CASA_DIEGO",
+      targets: [{ kind: "telegram", chatId: "-1005" }],
+      enabled: true,
+    },
+  });
+
+  // Antes de qualquer automação o servidor não conhece o IP de casa, então o
+  // app aberto não tem como determinar nada: navegador não lê SSID.
+  const pwaCego = await req("/api/heartbeat", {
+    method: "POST",
+    key: key5,
+    body: { source: "pwa", event: "app-open" },
+  });
+  check(
+    "app sem nada a dizer é descartado",
+    pwaCego.data.registrado === false && pwaCego.data.network === "unknown",
+    JSON.stringify(pwaCego.data),
+  );
+  const listaVazia = await req("/api/status", { key: key5 });
+  check(
+    "e não entra na lista de sinais",
+    listaVazia.data.beats.length === 0,
+    JSON.stringify(listaVazia.data.beats),
+  );
+
+  // A automação confirma o SSID e o servidor aprende o IP de casa junto.
+  const dev5 = await req("/api/devices", { method: "POST", key: key5, body: { label: "Fone" } });
+  await req("/api/heartbeat?t=" + dev5.data.token + "&event=wifi-connected&ssid=CASA_DIEGO");
+
+  const comIp = await req("/api/status", { key: key5 });
+  check("automação registrou em casa", comIp.data.lastBeat?.network === "home");
+  check("e ensinou o IP de casa", comIp.data.homeIpRegistered === true);
+
+  // Agora o mesmo sinal do app determina presença pelo IP — é o backup para
+  // quando a automação morre, e o único recurso decente no iPhone.
+  const pwaUtil = await req("/api/heartbeat", {
+    method: "POST",
+    key: key5,
+    body: { source: "pwa", event: "app-open" },
+  });
+  check(
+    "com IP conhecido o app passa a confirmar presença",
+    pwaUtil.data.registrado === true && pwaUtil.data.network === "home",
+    JSON.stringify(pwaUtil.data),
+  );
+
+  const depoisPwa = await req("/api/status", { key: key5 });
+  check(
+    "abrir o app nunca rebaixa um em casa da automação",
+    depoisPwa.data.lastBeat?.network === "home",
+    JSON.stringify(depoisPwa.data.lastBeat),
+  );
+  const cronDiego = await req("/api/cron/evaluate", { cron: true });
+  check(
+    "o cron ainda avisa a chegada depois disso",
+    cronDiego.data.results.find((r) => r.displayName === "Diego")?.action === "send-home",
+    JSON.stringify(cronDiego.data.results.find((r) => r.displayName === "Diego")),
+  );
+
+
+  console.log("\n9. limpar a lista de sinais");
+
+  const limpou = await req("/api/history", { method: "DELETE", key: key5 });
+  check("limpa sem erro", limpou.status === 200, JSON.stringify(limpou.data));
+
+  const vazio = await req("/api/status", { key: key5 });
+  check("lista de sinais zerada", vazio.data.beats.length === 0, JSON.stringify(vazio.data.beats));
+  check("estado de presença zerado", !vazio.data.lastBeat, JSON.stringify(vazio.data.lastBeat));
+  check(
+    "histórico de noites preservado",
+    vazio.data.nights.length > 0,
+    JSON.stringify(vazio.data.nights),
+  );
+
+  const semChave = await req("/api/history", { method: "DELETE" });
+  check("limpar exige credencial", semChave.status === 401);
 }
 
 /* ---------------- orquestração ---------------- */

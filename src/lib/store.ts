@@ -166,3 +166,16 @@ export async function recentNights(userId: string, n = 30): Promise<NightRecord[
     typeof v === "string" ? (JSON.parse(v) as NightRecord) : (v as NightRecord),
   );
 }
+
+/**
+ * Apaga o histórico de sinais e o estado de presença atual.
+ *
+ * O último sinal vai junto de propósito: manter um "em casa" antigo depois de
+ * limpar a lista deixaria o app confirmando chegada com base num sinal que o
+ * usuário não consegue mais ver. Depois de limpar, o estado é "sem sinal" — que
+ * é honesto e faz o app esperar, nunca avisar.
+ */
+export async function clearBeats(userId: string): Promise<void> {
+  const r = redis();
+  await Promise.all([r.del(K.beatLog(userId)), r.del(K.lastBeat(userId))]);
+}

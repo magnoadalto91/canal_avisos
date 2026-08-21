@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ConfigPanel } from "@/components/ConfigPanel";
 import { DevicesPanel } from "@/components/DevicesPanel";
 import { HistoryPanel } from "@/components/HistoryPanel";
@@ -24,8 +24,11 @@ export default function Page() {
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [tab, setTab] = useState<Tab>("status");
   const [error, setError] = useState<string | null>(null);
+  const [atualizando, setAtualizando] = useState(false);
+  const jaAnunciou = useRef(false);
 
   const load = useCallback(async () => {
+    setAtualizando(true);
     try {
       setStatus(await api<StatusResponse>("/api/status"));
       setError(null);
@@ -38,6 +41,8 @@ export default function Page() {
         setKeyState(null);
       }
       setError(msg);
+    } finally {
+      setAtualizando(false);
     }
   }, []);
 
@@ -47,10 +52,12 @@ export default function Page() {
     if (k) void load();
   }, [load]);
 
-  // Enquanto o app está aberto, ele também manda sinal. Não substitui a
-  // automação do SO — só ajuda quando você abre o app já em casa.
+  // O app se anuncia uma única vez por sessão. O servidor descarta esse sinal
+  // quando ele não determina nada — que é o caso sempre que o IP de casa ainda
+  // não foi aprendido, já que navegador não lê SSID.
   useEffect(() => {
-    if (!key || !status) return;
+    if (!key || jaAnunciou.current) return;
+    jaAnunciou.current = true;
     const conn = (navigator as unknown as { connection?: { type?: string } }).connection;
     void api("/api/heartbeat", {
       method: "POST",
@@ -60,7 +67,7 @@ export default function Page() {
         connectionType: conn?.type,
       }),
     }).catch(() => {});
-  }, [key, status]);
+  }, [key]);
 
   if (key === undefined) {
     return (
@@ -78,16 +85,27 @@ export default function Page() {
           Canal de Avisos
         </div>
         {key && (
-          <button
-            className="ghost small"
-            onClick={() => {
-              clearKey();
-              setKeyState(null);
-              setStatus(null);
-            }}
-          >
-            sair
-          </button>
+          <span style={{ display: "flex", gap: 6 }}>
+            <button
+              className="small"
+              disabled={atualizando}
+              onClick={() => void load()}
+              aria-label="Atualizar"
+              title="Atualizar"
+            >
+              {atualizando ? "..." : "↻ atualizar"}
+            </button>
+            <button
+              className="ghost small"
+              onClick={() => {
+                clearKey();
+                setKeyState(null);
+                setStatus(null);
+              }}
+            >
+              sair
+            </button>
+          </span>
         )}
       </header>
 
@@ -117,7 +135,7 @@ export default function Page() {
           {tab === "status" && <StatusPanel status={status} reload={load} />}
           {tab === "ajustes" && <ConfigPanel status={status} reload={load} />}
           {tab === "dispositivos" && <DevicesPanel status={status} reload={load} />}
-          {tab === "historico" && <HistoryPanel status={status} />}
+          {tab === "historico" && <HistoryPanel status={status} reload={load} />}
 
           <footer className="note">
             O aviso depende de um servidor, de uma automação no celular e do

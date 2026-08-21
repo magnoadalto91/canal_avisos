@@ -98,7 +98,16 @@ async function handle(
     ipHash: ipHash ?? undefined,
   };
 
-  await recordBeat(user.id, beat);
+  // Sinal do app que não determinou nada é pior que inútil: além de poluir o
+  // histórico, ele SOBRESCREVERIA um "em casa" recente da automação por um
+  // "desconhecido", e aí o cron esperaria em vez de avisar. Descartar é a
+  // única opção correta — o navegador não lê SSID, então isso acontece toda
+  // vez que o app é aberto.
+  const informativo = !(source === "pwa" && verdict.network === "unknown");
+
+  if (informativo) {
+    await recordBeat(user.id, beat);
+  }
 
   // O IP de casa é dinâmico na maioria dos provedores. Toda vez que o SSID
   // confirma que estamos em casa, reaprendemos o IP — assim a checagem por IP
@@ -111,6 +120,7 @@ async function handle(
     ok: true,
     network: verdict.network,
     reason: verdict.reason,
+    registrado: informativo,
     at: beat.at,
   });
 }

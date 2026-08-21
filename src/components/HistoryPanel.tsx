@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { api } from "@/lib/client";
 import type { StatusResponse } from "@/lib/types";
 
 const OUTCOME: Record<string, { icon: string; label: string }> = {
@@ -15,19 +17,31 @@ const NETWORK: Record<string, { icon: string; label: string }> = {
   unknown: { icon: "❓", label: "Rede desconhecida" },
 };
 
-/**
- * Quem mandou o sinal. Sem isso, um heartbeat do próprio app parece um
- * disparo da automação que deu errado — e manda a pessoa depurar a macro
- * errada, procurando defeito onde não há.
- */
 const SOURCE: Record<string, { label: string; kind: string }> = {
   "ssid-automation": { label: "automação", kind: "ok" },
-  pwa: { label: "app aberto", kind: "" },
   manual: { label: "manual", kind: "" },
 };
 
-export function HistoryPanel({ status }: { status: StatusResponse }) {
+export function HistoryPanel({
+  status,
+  reload,
+}: {
+  status: StatusResponse;
+  reload: () => void;
+}) {
   const tz = status.config.timezone;
+
+  /**
+   * Esta lista existe para depurar a automação do celular, então mostra só o
+   * que veio dela. O sinal do próprio app continua contando para o estado de
+   * presença — aparece na aba Status — mas aqui só atrapalhava: era lido como
+   * automação com defeito e mandava procurar problema onde não havia.
+   */
+  const sinais = status.beats.filter((b) => b.source !== "pwa");
+
+  const [confirmando, setConfirmando] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   const fmt = (ms: number) =>
     new Intl.DateTimeFormat("pt-BR", {
@@ -38,8 +52,24 @@ export function HistoryPanel({ status }: { status: StatusResponse }) {
       minute: "2-digit",
     }).format(new Date(ms));
 
+  async function limpar() {
+    setBusy(true);
+    setErro(null);
+    try {
+      await api("/api/history", { method: "DELETE" });
+      setConfirmando(false);
+      reload();
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : "Falhou.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <>
+      {erro && <div className="banner err">{erro}</div>}
+
       <div className="card">
         <h2>Noites</h2>
         <p className="hint">O que o grupo recebeu, ou não recebeu, a cada noite.</p>
@@ -68,30 +98,58 @@ export function HistoryPanel({ status }: { status: StatusResponse }) {
       <div className="card">
         <h2>Sinais recebidos</h2>
         <p className="hint">
-          Últimos heartbeats do celular. Serve para conferir se a automação está
-          disparando de verdade.
+          Só o que a automação do celular mandou. Serve para conferir se as
+          macros estão disparando de verdade.
         </p>
-        {status.beats.length === 0 ? (
-          <p className="empty">Nenhum sinal ainda.</p>
+
+        {sinais.length === 0 ? (
+          <p className="empty">Nenhum sinal da automação ainda.</p>
         ) : (
-          <ul className="timeline">
-            {status.beats.map((b, i) => {
-              const n = NETWORK[b.network] ?? { icon: "•", label: b.network };
-              const s = SOURCE[b.source] ?? { label: b.source, kind: "" };
-              return (
-                <li key={b.at + "-" + i}>
-                  <span className="when">{fmt(b.at)}</span>
-                  <span className="what">
-                    {n.icon} {n.label}{" "}
-                    <span className={"pill " + s.kind}>{s.label}</span>
-                    <div className="why">
-                      {b.event} · {b.reason}
-                    </div>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            <ul className="timeline">
+              {sinais.map((b, i) => {
+                const n = NETWORK[b.network] ?? { icon: "•", label: b.network };
+                const s = SOURCE[b.source] ?? { label: b.source, kind: "" };
+                return (
+                  <li key={b.at + "-" + i}>
+                    <span className="when">{fmt(b.at)}</span>
+                    <span className="what">
+                      {n.icon} {n.label}{" "}
+                      <span className={"pill " + s.kind}>{s.label}</span>
+                      <div className="why">
+                        {b.event} · {b.reason}
+                      </div>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="actions" style={{ marginTop: 16 }}>
+              {confirmando ? (
+                <>
+                  <button className="danger" disabled={busy} onClick={limpar}>
+                    {busy ? "Limpando..." : "Confirmar: apagar tudo"}
+                  </button>
+                  <button className="ghost" disabled={busy} onClick={() => setConfirmando(false)}>
+                    Cancelar
+                  </button>
+                </>
+              ) : (
+                <button className="ghost" onClick={() => setConfirmando(true)}>
+                  Limpar sinais
+                </button>
+              )}
+            </div>
+
+            {confirmando && (
+              <p className="hint" style={{ marginTop: 10, marginBottom: 0 }}>
+                Apaga também o estado de presença atual — o app volta a
+                &ldquo;sem sinal&rdquo; até a próxima automação disparar. O
+                histórico de noites não é afetado.
+              </p>
+            )}
+          </>
         )}
       </div>
     </>
