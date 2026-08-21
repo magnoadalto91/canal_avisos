@@ -129,14 +129,22 @@ export function DevicesPanel({
           <li>
             <strong>Mantém vivo:</strong> gatilho Intervalo Regular de 15 min,
             com restrição &ldquo;conectado à rede de casa&rdquo; → mesma URL com{" "}
-            <code>event=periodic</code>.
+            <code>event=periodic</code>. Se houver a opção{" "}
+            <strong>Usar alarme</strong> no gatilho, ative: sem ela o Android
+            adia o disparo durante o modo Doze, que é justamente o estado do
+            celular parado na mesa às 22:00.
           </li>
           <li>
             Nas três, deixe o <code>ssid</code> exatamente igual ao nome da rede
             cadastrado nos Ajustes. Diferença de maiúscula não atrapalha, espaço
-            sobrando sim.
+            sobrando sim. Se o nome tiver espaço, na URL ele vira{" "}
+            <code>%20</code> — mas nos Ajustes digite normal.
           </li>
         </ol>
+        <p className="hint" style={{ marginTop: 12, marginBottom: 0 }}>
+          Passo a passo tela por tela, incluindo como testar cada macro e como
+          impedir o Android de matar o MacroDroid: <code>docs/CELULAR.md</code>.
+        </p>
       </div>
 
       <div className="card">
