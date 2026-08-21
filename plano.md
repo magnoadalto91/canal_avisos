@@ -183,15 +183,54 @@ assinatura, porque:
 Preparar antes: conta no Meta Business, verificação da empresa e aprovação dos
 templates. São semanas, e é trabalho de empresa, não de usuário. Comece cedo.
 
-### Push — a base mundial
+### Push — a base, não o complemento
 
-Notificação para o próprio app, via FCM cobrindo Android e iOS. É o único canal
-que funciona em qualquer país sem depender de o círculo usar um mensageiro
-específico, e é grátis.
+Notificação para o próprio app, via FCM cobrindo Android e iOS. É o **canal
+padrão**, e o único que funciona em qualquer país sem depender de mensageiro
+nenhum, sem custo por mensagem e sem terceiros podendo desligar a torneira.
 
-O alerta precisa sair como notificação **prioritária**, senão o Android agrupa e
-silencia. No iOS, notificação crítica que fura o Não Perturbe exige autorização
-especial da Apple — vale pedir, este é literalmente o caso de uso previsto.
+Telegram e WhatsApp são canais **adicionais**, escolhidos por conveniência de
+quem recebe. Push é o que sempre existe.
+
+São duas audiências diferentes, e isso costuma ser esquecido:
+
+- **quem é monitorado** — "sua janela abre em 10 min", "confirmamos sua chegada",
+  "você quer avisar que está bem mas fora de casa?"
+- **o círculo** — o alerta em si, e o desfecho
+
+Requisitos técnicos que não são detalhe:
+
+- **Android:** canal de notificação com `IMPORTANCE_HIGH` e mensagem FCM com
+  `priority: high`. Sem isso o Doze adia a entrega — e o adiamento acontece
+  justamente quando o celular está parado de madrugada, que é a hora do alerta.
+- **iOS:** `apns-priority: 10`. Para furar o silencioso e o Não Perturbe é
+  preciso o **entitlement de Critical Alerts**, que a Apple concede sob análise.
+  Vale pedir: alerta de segurança é literalmente o caso de uso previsto, e sem
+  ele o aviso chega no celular de alguém que está dormindo e não toca.
+
+#### Push sozinho não basta, e isso muda o desenho
+
+Push é **best-effort**. FCM e APNs não garantem entrega: celular desligado,
+bateria restrita, token expirado, app desinstalado. Para uma notificação de
+engajamento tudo bem. Para um alerta de segurança, não.
+
+A consequência é que **entrega precisa ser confirmada, não presumida**. E o
+botão "estou indo ver" da seção anterior resolve os dois problemas de uma vez:
+ele é a coordenação **e** o comprovante de que alguém recebeu.
+
+Daí sai a escada de entrega:
+
+```
+push para o círculo
+   ├─ alguém confirmou em X min  → encerra
+   └─ ninguém confirmou          → Telegram / WhatsApp
+                                      ├─ confirmou → encerra
+                                      └─ silêncio  → SMS, depois chamada de voz
+```
+
+Cada degrau custa mais e alcança mais. Os dois primeiros são gratuitos, os dois
+últimos são o que o plano pago financia — e agora o motivo de serem pagos fica
+claro para o cliente, porque ele entende que está comprando **insistência**.
 
 ### A coordenação sem construir um chat
 
