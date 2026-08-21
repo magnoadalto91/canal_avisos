@@ -136,8 +136,9 @@ export function DevicesPanel({
             <strong>Saiu:</strong> mesmo gatilho, opção Desconectado da rede,
             em <strong>qualquer rede</strong> → mesma URL com{" "}
             <code>event=wifi-disconnected</code>. Sem restrição e sem escolher
-            rede: no instante do disparo você já saiu, e o Android costuma já
-            ter descartado o SSID.
+            rede. E adicione uma ação de <strong>aguardar 15 segundos antes
+            do HTTP</strong>: quando o wifi cai o celular fica sem rede nenhuma
+            até os dados móveis assumirem, e a requisição falha no DNS.
           </li>
           <li>
             <strong>Mantém vivo:</strong> gatilho Intervalo Regular de 15 min,

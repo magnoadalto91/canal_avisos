@@ -73,7 +73,8 @@ Você vai ver três seções: **Gatilhos**, **Ações**, **Restrições**.
    (*Wifi State Change*)
 3. Escolha **Conectado à rede** (*Connected to Network*)
 4. Se aparecer a lista de redes, **marque a sua** → OK.
-   Se não aparecer, tudo bem — a restrição do passo seguinte resolve.
+   Se não aparecer, use o texto mágico do SSID na URL (explicado na Ação) — é
+   ele que garante a verificação, não uma restrição.
 
 > ### Não use "Wi-Fi dentro/fora do alcance"
 >
@@ -149,6 +150,28 @@ Toque no ✓ (salvar) → dê o nome **Cheguei em casa** → OK.
   não escolha uma específica
 - **Restrição:** **nenhuma**
 - **URL:** `event=wifi-disconnected`
+- **Ação extra, obrigatória:** antes do HTTP, uma espera de **15 segundos**
+
+#### A espera não é opcional
+
+No instante em que o wifi cai o celular fica **sem rede nenhuma**: o wifi já
+morreu e os dados móveis ainda não assumiram. O DNS não resolve e a requisição
+falha, com esta cara no log do MacroDroid:
+
+```
+(T) Desconectado da rede            -> o gatilho disparou
+HTTP Request: DNS resolution failed ... (attempt 1 of 2)
+HTTP Request failed: java.net.UnknownHostException
+Unable to resolve host "seu-app.vercel.app"
+```
+
+Repare que **a macro está certa** — ela dispara. É a rede que não existe ainda.
+O retry embutido do MacroDroid às vezes salva, às vezes não, então não dá para
+depender dele.
+
+Adicione: `+` em **Ações** → busque `aguardar` (*wait*) → **Aguardar antes da
+próxima ação** → **15 segundos** → e **mova para o topo da lista de ações**,
+acima da requisição HTTP.
 
 ```
 https://SEU-APP.vercel.app/api/heartbeat?t=SEU_TOKEN&event=wifi-disconnected&ssid=SUA_REDE
@@ -302,10 +325,18 @@ sistema.
 | `"network":"unknown"`, motivo `SSID de casa ainda não cadastrado` | falta preencher o SSID nos Ajustes do app |
 | `401` | token errado, revogado, ou você copiou a URL cortada |
 | nada acontece | a macro está desativada, ou o MacroDroid foi morto pelo sistema |
+| `UnknownHostException` no Log | o celular estava sem rede na hora — falta a espera de 15s |
 
 ### A chegada funciona mas a saída nunca aparece
 
-Duas causas, nesta ordem:
+**Abra o Log do MacroDroid antes de mexer em qualquer coisa.** Esta falha quase
+sempre é de rede, não de configuração, e o Log separa os dois casos na hora.
+
+Se aparecer `DNS resolution failed` ou `UnknownHostException`, a macro está
+certa e faltou a espera de 15 segundos — veja acima. É de longe a causa mais
+comum.
+
+Se a macro nem aparecer no Log, aí sim é configuração:
 
 1. **Tem restrição na macro 2.** Bloqueio garantido: no instante do disparo você
    já saiu da rede, então qualquer restrição de "conectado" é falsa. Apague.
