@@ -60,7 +60,6 @@ export function ConfigPanel({
         freshnessMinutes: Number(form.freshnessMinutes),
         alertOnNoSignal: form.alertOnNoSignal,
         enabled: form.enabled,
-        targets,
         messages: form.messages,
       };
       // Só manda o SSID se foi digitado agora: o servidor guarda o hash e nunca
@@ -74,6 +73,25 @@ export function ConfigPanel({
       patchField("homeSsid", "");
       reload();
       return "Ajustes salvos.";
+    });
+
+  /**
+   * Destino é ação, não campo de formulário.
+   *
+   * Antes, "adicionar" só mexia no estado local e a gravação dependia do botão
+   * Salvar lá no fim de um formulário longo. O grupo aparecia na tela como se
+   * estivesse salvo e sumia na próxima abertura do app — e o pior: a pessoa
+   * ligava o monitoramento achando que tinha destino configurado.
+   */
+  const salvarDestinos = (next: NotifyTarget[]) =>
+    run("targets", async () => {
+      await api<{ config: UserConfig }>("/api/config", {
+        method: "PATCH",
+        body: JSON.stringify({ targets: next }),
+      });
+      setTargets(next);
+      reload();
+      return next.length === 0 ? "Destino removido." : "Destino salvo.";
     });
 
   const discover = () =>
@@ -126,8 +144,8 @@ export function ConfigPanel({
                     className="small"
                     disabled={already}
                     onClick={() =>
-                      setTargets((t) => [
-                        ...t,
+                      salvarDestinos([
+                        ...targets,
                         { kind: "telegram", chatId: chat.chatId, label: chat.title },
                       ])
                     }
@@ -143,6 +161,10 @@ export function ConfigPanel({
 
       <div className="card">
         <h2>Destinos ativos</h2>
+        <p className="hint">
+          Adicionar e remover aqui salva na hora, sem precisar do botão no fim
+          da página.
+        </p>
         {targets.length === 0 ? (
           <p className="empty">Nenhum destino. Sem isto, o app não avisa ninguém.</p>
         ) : (
@@ -160,7 +182,7 @@ export function ConfigPanel({
                 </button>
                 <button
                   className="small danger"
-                  onClick={() => setTargets((prev) => prev.filter((x) => x.chatId !== t.chatId))}
+                  onClick={() => salvarDestinos(targets.filter((x) => x.chatId !== t.chatId))}
                 >
                   remover
                 </button>

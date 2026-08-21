@@ -61,9 +61,12 @@ console.log("decisão");
     freshnessMinutes: 60,
     alertOnNoSignal: true,
   };
-  const d = (over, ctx) => decide({ user: { ...base, ...over }, ...ctx }).action;
-
   const MIN = 60_000;
+
+  // Por padrão a janela abriu faz duas horas, então qualquer sinal recente
+  // caiu dentro dela. Os casos que testam a borda passam windowElapsedMs.
+  const d = (over, ctx) =>
+    decide({ user: { ...base, ...over }, windowElapsedMs: 120 * MIN, ...ctx }).action;
 
   eq("em casa e fresco -> avisa", d({}, { insideWindow: true, afterWindow: false, beatNetwork: "home", beatAgeMs: 5 * MIN }), "send-home");
   eq("em casa mas velho -> espera, nao avisa", d({}, { insideWindow: true, afterWindow: false, beatNetwork: "home", beatAgeMs: 120 * MIN }), "wait");
@@ -75,6 +78,47 @@ console.log("decisão");
   eq("sem destino -> pula", d({ targets: [] }, { insideWindow: true, afterWindow: false, beatNetwork: "home", beatAgeMs: 1 * MIN }), "skip");
   eq("exatamente no limite de frescor ainda vale", d({}, { insideWindow: true, afterWindow: false, beatNetwork: "home", beatAgeMs: 60 * MIN }), "send-home");
   eq("um minuto alem do limite nao vale", d({}, { insideWindow: true, afterWindow: false, beatNetwork: "home", beatAgeMs: 61 * MIN }), "wait");
+}
+
+console.log("sinal precisa ser de DEPOIS que a janela abriu");
+{
+  const base = {
+    enabled: true,
+    targets: [{ kind: "telegram", chatId: "-100" }],
+    freshnessMinutes: 60,
+    alertOnNoSignal: true,
+  };
+  const MIN = 60_000;
+  const dentro = { insideWindow: true, afterWindow: false, beatNetwork: "home" };
+  const d = (ctx) => decide({ user: base, ...ctx }).action;
+
+  // A janela abriu ha 5 min. Este e o caso perigoso: pessoa em casa as 21h45,
+  // saiu as 21h55, janela abre as 22h. O sinal e recente mas e de ANTES.
+  eq(
+    "sinal fresco mas anterior a janela nao confirma",
+    d({ ...dentro, beatAgeMs: 20 * MIN, windowElapsedMs: 5 * MIN }),
+    "wait",
+  );
+  eq(
+    "sinal de depois que a janela abriu confirma",
+    d({ ...dentro, beatAgeMs: 3 * MIN, windowElapsedMs: 5 * MIN }),
+    "send-home",
+  );
+  eq(
+    "sinal exatamente na abertura da janela vale",
+    d({ ...dentro, beatAgeMs: 5 * MIN, windowElapsedMs: 5 * MIN }),
+    "send-home",
+  );
+  eq(
+    "chegada tardia continua funcionando",
+    d({ ...dentro, beatAgeMs: 2 * MIN, windowElapsedMs: 100 * MIN }),
+    "send-home",
+  );
+  eq(
+    "frescor ainda manda: sinal na janela porem velho demais nao confirma",
+    d({ ...dentro, beatAgeMs: 90 * MIN, windowElapsedMs: 200 * MIN }),
+    "wait",
+  );
 }
 
 console.log(`\n${pass} passaram, ${fail} falharam\n`);

@@ -47,6 +47,7 @@ export async function evaluateUser(
     afterWindow: ws.after,
     beatNetwork: beat?.network ?? null,
     beatAgeMs: beat ? now.getTime() - beat.at : null,
+    windowElapsedMs: ws.elapsed * 60_000,
   });
 
   if (decision.action === "wait" || decision.action === "skip") {
@@ -104,6 +105,7 @@ export async function describeStatus(user: UserConfig, now: Date = new Date()) {
     afterWindow: ws.after,
     beatNetwork: beat?.network ?? null,
     beatAgeMs: beat ? now.getTime() - beat.at : null,
+    windowElapsedMs: ws.elapsed * 60_000,
   });
 
   return { window: ws, beat, night, decision };

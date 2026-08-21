@@ -143,7 +143,15 @@ Toque no ✓ (salvar) → dê o nome **Cheguei em casa** → OK.
 
 ---
 
-### Macro 2 — "Saí de casa"
+### Macro 2 — "Saí de casa" (opcional)
+
+> **Você pode pular esta macro.** O servidor só confirma chegada com um sinal
+> recebido **depois** que a janela abriu, e o gatilho periódico só dispara em
+> casa — então a ausência dele já diz que você não está lá. A macro de saída
+> apenas antecipa o registro; ela não é mais necessária para a correção.
+>
+> Ela continua útil se você quiser ver a saída no histórico, e é a única forma
+> de o app saber que você saiu **no meio** da janela.
 
 - **Gatilho:** Conectividade → **Mudança de estado do Wi-Fi** →
   **Desconectado da rede** (*Disconnected from Network*) → **qualquer rede**,
@@ -195,20 +203,22 @@ Nome: **Saí de casa**.
 > te procurar. O contrário, um "cheguei" falso, calaria o alarme com você na rua.
 > Por isso só as macros que afirmam **presença** (1 e 3) precisam de rigor.
 
-#### Por que esta macro importa mais do que parece
+#### O buraco que esta macro tapava, e que hoje o servidor tapa sozinho
 
-É tentador achar que ela é decorativa, já que o app avisa na chegada. Não é.
+Vale entender, porque a regra do servidor depende disto.
 
-Sem ela, considere: às 21:50 o gatilho periódico dispara, você está em casa.
-Às 21:55 você sai. Às 22:00 a janela abre e o servidor olha o último sinal —
-"em casa", com cinco minutos de idade, fresquíssimo. Ele manda **"chegou em
-casa"** para o grupo e encerra a noite.
+Às 21:45 o gatilho periódico dispara, você em casa. Às 21:55 você sai. Às 22:00
+a janela abre e o servidor olha o último sinal: "em casa", quinze minutos de
+idade, fresquíssimo pela régua de frescor. Ele mandaria **"chegou em casa"** e
+encerraria a noite, com você na rua e ninguém avisado.
 
-Você passa a noite fora e ninguém é avisado, porque a noite já foi resolvida.
+Por isso a regra não é mais "o sinal é recente?" e sim **"houve sinal de casa
+depois que a janela abriu?"**. Um sinal de 21:45 não confirma nada às 22:00,
+por mais novo que seja. Como o gatilho periódico só dispara em casa, ficar sem
+sinal dentro da janela já é a resposta.
 
-A macro de saída fecha essa brecha na hora. Sem ela, a única proteção é o sinal
-envelhecer até passar do limite de frescor — e até lá existe uma janela de erro
-do tamanho desse limite.
+O frescor continua valendo por cima disso, para o caso do celular que morreu em
+casa e deixou um "em casa" congelado.
 
 ---
 

@@ -120,9 +120,9 @@ export function DevicesPanel({
       <div className="card">
         <h2>Android — MacroDroid</h2>
         <p className="hint">
-          Crie <strong>três</strong> macros. As duas primeiras marcam entrada e
-          saída; a terceira é a que mantém o sinal fresco, e sem ela a checagem
-          das 22:00 encontra um sinal velho e não confirma nada.
+          Duas macros obrigatórias e uma opcional. A de chegada e a periódica
+          sustentam o sistema; a de saída só antecipa o registro, porque o
+          servidor já exige um sinal recebido depois que a janela abriu.
         </p>
         <div className="banner err" style={{ marginBottom: 14 }}>
           Use o gatilho <strong>Mudança de estado do Wi-Fi</strong>, nunca{" "}
@@ -140,7 +140,7 @@ export function DevicesPanel({
             disparo em silêncio.
           </li>
           <li>
-            <strong>Saiu:</strong> mesmo gatilho, opção Desconectado da rede,
+            <strong>Saiu (opcional):</strong> mesmo gatilho, opção Desconectado da rede,
             em <strong>qualquer rede</strong> → mesma URL com{" "}
             <code>event=wifi-disconnected</code>. Sem restrição e sem escolher
             rede. E adicione uma ação de <strong>aguardar 15 segundos antes
