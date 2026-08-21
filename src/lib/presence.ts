@@ -24,7 +24,7 @@ export function judge(input: {
   ipHash?: string | null;
   connectionType?: string;
 }): Judgement {
-  const { user, event, ssid, ipHash, connectionType } = input;
+  const { user, source, event, ssid, ipHash, connectionType } = input;
 
   if (event === "wifi-disconnected") {
     return {
@@ -65,6 +65,18 @@ export function judge(input: {
     return {
       network: "unknown",
       reason: "SSID de casa ainda não cadastrado",
+      relearnHomeIp: false,
+    };
+  }
+
+  // Um sinal do próprio app quase sempre cai aqui, porque navegador não lê
+  // SSID. Sem dizer isso, a linha vira "rede não reconhecida" no histórico e
+  // é lida como falha da automação — o que manda a pessoa depurar a macro
+  // errada. Vale a mensagem explícita.
+  if (source === "pwa") {
+    return {
+      network: "unknown",
+      reason: "app aberto — o navegador não consegue identificar a rede",
       relearnHomeIp: false,
     };
   }

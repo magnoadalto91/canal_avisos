@@ -15,6 +15,17 @@ const NETWORK: Record<string, { icon: string; label: string }> = {
   unknown: { icon: "❓", label: "Rede desconhecida" },
 };
 
+/**
+ * Quem mandou o sinal. Sem isso, um heartbeat do próprio app parece um
+ * disparo da automação que deu errado — e manda a pessoa depurar a macro
+ * errada, procurando defeito onde não há.
+ */
+const SOURCE: Record<string, { label: string; kind: string }> = {
+  "ssid-automation": { label: "automação", kind: "ok" },
+  pwa: { label: "app aberto", kind: "" },
+  manual: { label: "manual", kind: "" },
+};
+
 export function HistoryPanel({ status }: { status: StatusResponse }) {
   const tz = status.config.timezone;
 
@@ -66,11 +77,13 @@ export function HistoryPanel({ status }: { status: StatusResponse }) {
           <ul className="timeline">
             {status.beats.map((b, i) => {
               const n = NETWORK[b.network] ?? { icon: "•", label: b.network };
+              const s = SOURCE[b.source] ?? { label: b.source, kind: "" };
               return (
                 <li key={b.at + "-" + i}>
                   <span className="when">{fmt(b.at)}</span>
                   <span className="what">
-                    {n.icon} {n.label}
+                    {n.icon} {n.label}{" "}
+                    <span className={"pill " + s.kind}>{s.label}</span>
                     <div className="why">
                       {b.event} · {b.reason}
                     </div>

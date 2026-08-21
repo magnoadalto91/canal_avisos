@@ -87,17 +87,21 @@ Você vai ver três seções: **Gatilhos**, **Ações**, **Restrições**.
 > sem base nenhuma. Use **Mudança de estado do Wi-Fi**, que só dispara quando a
 > conexão realmente acontece.
 
-#### Restrição (importante)
+#### Restrição
 
-1. Toque no `+` da seção **Restrições** (*Constraints*)
-2. Busque por `wifi` → escolha a restrição de rede Wi-Fi
-3. Configure para **conectado à sua rede de casa**
+**Nenhuma. Deixe vazio** — e este é um caso em que a restrição *atrapalha*.
 
-Por que, se o gatilho já é da sua rede: porque nem toda versão do MacroDroid
-deixa escolher o SSID no gatilho. Se ele disparar em **qualquer** conexão Wi-Fi
-e a URL levar o nome da sua casa fixo, o servidor receberia "estou em casa"
-enquanto você conecta no Wi-Fi de um bar. A restrição fecha esse buraco de
-uma vez, e não custa nada quando o gatilho já está certo.
+> Uma versão anterior deste documento mandava colocar aqui a restrição
+> "conectado à rede de casa". **Não coloque.** O MacroDroid avalia a restrição
+> no instante em que o gatilho dispara, que é justamente o meio da transição de
+> conexão: o Android ainda não terminou de reportar o SSID, a restrição dá
+> falso, e a macro é descartada **em silêncio**. O sintoma é exatamente este:
+> a macro de saída funciona, a de chegada nunca aparece no histórico.
+>
+> A macro 3 continua precisando de restrição, e lá não há esse problema — ela é
+> avaliada num momento qualquer, nunca durante uma transição.
+
+A proteção contra "cheguei falso" fica na ação, no passo seguinte.
 
 #### Ação
 
@@ -112,6 +116,25 @@ https://SEU-APP.vercel.app/api/heartbeat?t=SEU_TOKEN&event=wifi-connected&ssid=S
 ```
 
 5. Não preencha corpo, cabeçalho nem nada. Só a URL. OK
+
+##### Melhor ainda: deixe o MacroDroid preencher o SSID
+
+No campo da URL, o MacroDroid tem um botão de **texto mágico** (*magic text*,
+costuma ser um ícone tipo `{*}` ou `+`). Abra a lista, procure por **SSID** e
+insira a variável no lugar de digitar o nome da rede:
+
+```
+...&event=wifi-connected&ssid=SSID_INSERIDO_PELO_MACRODROID
+```
+
+Assim a URL carrega a rede **real** em que o celular está, não uma afirmação
+fixa. O servidor compara com o SSID cadastrado e decide. Se um dia o gatilho
+disparar numa rede errada, o servidor responde "conectado a outro wifi" em vez
+de registrar uma chegada falsa — a verificação deixa de depender do MacroDroid
+estar configurado certo.
+
+Se não achar a variável na lista, digite o nome fixo mesmo; só confira o
+resultado do Teste 4.
 
 #### Salvar
 
@@ -259,6 +282,30 @@ sistema.
 | `"network":"unknown"`, motivo `SSID de casa ainda não cadastrado` | falta preencher o SSID nos Ajustes do app |
 | `401` | token errado, revogado, ou você copiou a URL cortada |
 | nada acontece | a macro está desativada, ou o MacroDroid foi morto pelo sistema |
+
+### A saída funciona mas a chegada nunca aparece
+
+O caso mais comum, e quase sempre a mesma causa: **uma restrição na macro 1**.
+
+Ela é avaliada no instante do disparo, no meio da transição de conexão, quando
+o Android ainda não reporta o SSID. Dá falso e a macro é descartada sem deixar
+rastro no histórico do app.
+
+Confirme no **Log do MacroDroid** (menu lateral → Log): ele mostra o disparo e
+diz se uma restrição bloqueou. Se for isso, apague a restrição da macro 1 — o
+gatilho e a verificação de SSID no servidor já cobrem.
+
+Se o Log não mostrar nem o disparo, o problema é outro: gatilho errado
+(conferir se é **Mudança de estado do Wi-Fi**), macro desativada, ou o sistema
+matando o MacroDroid.
+
+### Uma linha "app aberto" no histórico não é a sua macro
+
+Sinais marcados como **app aberto** vêm do próprio site quando você o abre, e
+sempre aparecem como "Rede desconhecida" — navegador não lê SSID, é a limitação
+que motivou toda esta automação. Não é defeito e não conta para nada.
+
+Para depurar as macros, olhe só as linhas marcadas como **automação**.
 
 ---
 
