@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { redis } from "@/lib/redis";
+import { redis, redisEnvNames } from "@/lib/redis";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,29 +13,39 @@ export const dynamic = "force-dynamic";
  * uma configuração quebrada passaria despercebida justamente até a noite em
  * que importasse.
  *
- * Só devolve booleanos, nunca valores. Fica público de propósito, para poder
- * ser consultado quando o próprio CRON_SECRET é o que está faltando.
+ * Devolve apenas NOMES de variáveis e booleanos, nunca valores. Fica público de
+ * propósito, para poder ser consultado quando o próprio CRON_SECRET é o que
+ * está faltando.
  */
 export async function GET() {
+  const found = redisEnvNames();
+
   const env = {
-    upstash: !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN),
+    upstash: !!(found.url && found.token),
     telegramToken: !!process.env.TELEGRAM_BOT_TOKEN,
     hashSalt: (process.env.HASH_SALT ?? "").length >= 16,
     cronSecret: !!process.env.CRON_SECRET,
   };
 
-  let redisStatus = "não testado";
+  let redisStatus: string;
   if (env.upstash) {
     try {
       await redis().get("__health__");
       redisStatus = "ok";
     } catch {
       // Mensagem genérica: o erro do cliente pode conter a URL do banco.
-      redisStatus = "falhou ao conectar";
+      redisStatus = "variáveis presentes, mas a conexão falhou";
     }
   } else {
     redisStatus = "variáveis ausentes";
   }
+
+  // Quais nomes relacionados a Redis realmente existem no ambiente. Só os
+  // nomes: é o que revela na hora se a integração batizou como KV_REST_API_*
+  // em vez de UPSTASH_REDIS_REST_*, que é o erro de setup mais comum aqui.
+  const candidatos = Object.keys(process.env)
+    .filter((n) => /redis|upstash|^kv_/i.test(n))
+    .sort();
 
   const faltando = Object.entries(env)
     .filter(([, ok]) => !ok)
@@ -48,10 +58,12 @@ export async function GET() {
       ok,
       env,
       redis: redisStatus,
+      redisUsando: found,
+      variaveisDeRedisNoAmbiente: candidatos,
       faltando,
       dica: ok
         ? undefined
-        : "Adicione as variáveis em Settings > Environment Variables e faça Redeploy. Variável adicionada depois do build não vale para o deploy que já existe.",
+        : "Confira 'variaveisDeRedisNoAmbiente'. Se estiver vazio, o banco não está vinculado a este ambiente. Se tiver nomes mas 'redisUsando' vier nulo, o nome não é reconhecido. Depois de qualquer mudança, faça Redeploy: variável adicionada após o build não vale para o deploy existente.",
     },
     { status: ok ? 200 : 503 },
   );

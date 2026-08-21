@@ -34,8 +34,12 @@ e é o que permite o app descobrir o `chat_id` sozinho lá nos Ajustes.
 No painel da Vercel: **Storage → Marketplace → Upstash for Redis → Create**. O
 plano gratuito dá 500 mil comandos por mês; este app usa uma fração disso.
 
-Ao conectar o banco ao projeto, a Vercel injeta `UPSTASH_REDIS_REST_URL` e
-`UPSTASH_REDIS_REST_TOKEN` sozinha.
+Ao conectar o banco ao projeto, a Vercel injeta as credenciais sozinha. **O nome
+das variáveis varia**: dependendo da integração vem `UPSTASH_REDIS_REST_URL` /
+`UPSTASH_REDIS_REST_TOKEN` ou `KV_REST_API_URL` / `KV_REST_API_TOKEN`, que é a
+nomenclatura do antigo Vercel KV. O app aceita as duas formas.
+
+Marque os três ambientes (Production, Preview, Development) ao vincular.
 
 ## 4. Segredos
 
@@ -108,8 +112,8 @@ silenciosamente justo na primeira noite que importa.
 
 | Variável | Para quê |
 |---|---|
-| `UPSTASH_REDIS_REST_URL` | banco |
-| `UPSTASH_REDIS_REST_TOKEN` | banco |
+| `UPSTASH_REDIS_REST_URL` | banco (ou `KV_REST_API_URL`) |
+| `UPSTASH_REDIS_REST_TOKEN` | banco (ou `KV_REST_API_TOKEN`) |
 | `TELEGRAM_BOT_TOKEN` | envio |
 | `HASH_SALT` | hash de SSID e IP — **não troque depois** |
 | `CRON_SECRET` | protege o disparo; sem ele qualquer um avisaria seu grupo |
