@@ -6,11 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "icons": "node scripts/gen-icons.mjs",
     "test:logic": "node --experimental-strip-types --no-warnings scripts/test-logic.mjs",
-    "test:e2e": "node scripts/e2e.mjs"
+    "test:e2e": "node scripts/e2e.mjs",
+    "prepare": "node scripts/install-hooks.mjs",
+    "check:secrets": "node scripts/check-secrets.mjs"
   },
   "dependencies": {
     "@upstash/redis": "^1.38.2",
