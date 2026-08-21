@@ -89,6 +89,8 @@ export interface DeviceRecord {
   label: string;
   createdAt: number;
   lastUsedAt?: number;
+  /** sha256 do token, para conseguir apagar a credencial ao revogar. */
+  tokenHash?: string;
 }
 
 /* ---------- respostas da API, compartilhadas com o front ---------- */

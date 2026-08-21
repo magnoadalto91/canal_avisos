@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireDevice, requireUser } from "@/lib/auth";
 import { ipHashOf } from "@/lib/ip";
 import { judge } from "@/lib/presence";
-import { recordBeat, saveUser } from "@/lib/store";
+import { recordBeat, saveUser, touchDevice } from "@/lib/store";
 import type { Heartbeat, HeartbeatEvent, HeartbeatSource } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -67,6 +67,9 @@ async function handle(
   } else {
     user = asDevice.user;
     deviceId = asDevice.device.deviceId;
+    // Registra o uso mesmo que o sinal acabe descartado: a pergunta que a aba
+    // Dispositivos responde é "a automação está chegando aqui?", e ela chegou.
+    await touchDevice(asDevice.device);
   }
 
   const event = (EVENTS as string[]).includes(input.event ?? "")

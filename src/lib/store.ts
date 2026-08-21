@@ -69,25 +69,57 @@ export async function createDevice(userId: string, label: string) {
   const r = redis();
   const token = newToken(24);
   const deviceId = newToken(6);
+  const tokenHash = hashValue(`dev:${token}`);
   const record: DeviceRecord = {
     userId,
     deviceId,
     label,
     createdAt: Date.now(),
+    tokenHash,
   };
   await Promise.all([
-    r.set(K.device(hashValue(`dev:${token}`)), JSON.stringify(record)),
+    r.set(K.device(tokenHash), JSON.stringify(record)),
     r.hset(K.devicesOf(userId), { [deviceId]: JSON.stringify(record) }),
   ]);
   return { token, record };
 }
 
+/**
+ * A lista de dispositivos do usuário é a fonte da verdade sobre validade, não
+ * a chave da credencial.
+ *
+ * Existia um furo aqui: revogar removia o dispositivo da lista mas deixava a
+ * chave `dev:<hash>` viva no Redis, então o token revogado continuava
+ * autenticando para sempre. Conferir a lista fecha isso na hora, inclusive para
+ * tokens revogados antes desta correção, que não têm como ser localizados pelo
+ * hash.
+ */
 export async function resolveDevice(token: string): Promise<DeviceRecord | null> {
-  const raw = await redis().get<string | DeviceRecord>(
-    K.device(hashValue(`dev:${token}`)),
-  );
+  const r = redis();
+  const raw = await r.get<string | DeviceRecord>(K.device(hashValue(`dev:${token}`)));
   if (!raw) return null;
-  return typeof raw === "string" ? (JSON.parse(raw) as DeviceRecord) : raw;
+
+  const record = typeof raw === "string" ? (JSON.parse(raw) as DeviceRecord) : raw;
+
+  const ainda = await r.hget<string | DeviceRecord>(
+    K.devicesOf(record.userId),
+    record.deviceId,
+  );
+  if (!ainda) return null;
+
+  return record;
+}
+
+/**
+ * Marca quando o token foi usado pela última vez. É o que permite olhar a aba
+ * Dispositivos e responder "a automação está chegando no servidor?" sem ter
+ * que caçar no log do celular.
+ */
+export async function touchDevice(record: DeviceRecord): Promise<void> {
+  const atualizado: DeviceRecord = { ...record, lastUsedAt: Date.now() };
+  await redis().hset(K.devicesOf(record.userId), {
+    [record.deviceId]: JSON.stringify(atualizado),
+  });
 }
 
 export async function listDevices(userId: string): Promise<DeviceRecord[]> {
@@ -98,10 +130,19 @@ export async function listDevices(userId: string): Promise<DeviceRecord[]> {
   );
 }
 
-export async function deleteDevice(userId: string, deviceId: string, token?: string) {
+export async function deleteDevice(userId: string, deviceId: string): Promise<void> {
   const r = redis();
+
+  // Apaga também a credencial em si, para não deixar chave órfã no banco.
+  // Registros criados antes desta correção não têm o hash guardado; para eles
+  // a remoção da lista já basta, porque resolveDevice confere a lista.
+  const raw = await r.hget<string | DeviceRecord>(K.devicesOf(userId), deviceId);
+  if (raw) {
+    const record = typeof raw === "string" ? (JSON.parse(raw) as DeviceRecord) : raw;
+    if (record.tokenHash) await r.del(K.device(record.tokenHash));
+  }
+
   await r.hdel(K.devicesOf(userId), deviceId);
-  if (token) await r.del(K.device(hashValue(`dev:${token}`)));
 }
 
 /* ---------- heartbeats ---------- */

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api } from "@/lib/client";
+import { humanAge } from "@/lib/time";
 import type { DeviceRecord, StatusResponse } from "@/lib/types";
 
 export function DevicesPanel({
@@ -98,8 +99,14 @@ export function DevicesPanel({
             <div className="row" key={d.deviceId}>
               <span>
                 {d.label}
-                <div className="mono" style={{ color: "var(--muted)", marginTop: 2 }}>
-                  {d.deviceId}
+                <div style={{ color: "var(--muted)", marginTop: 3, fontSize: 12.5 }}>
+                  {d.lastUsedAt ? (
+                    <>último sinal {humanAge(Date.now() - d.lastUsedAt)}</>
+                  ) : (
+                    <strong style={{ color: "var(--danger)" }}>
+                      nunca usado — a automação não chegou no servidor
+                    </strong>
+                  )}
                 </div>
               </span>
               <button className="small danger" onClick={() => remove(d.deviceId)}>
