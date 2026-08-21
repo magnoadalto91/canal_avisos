@@ -125,6 +125,38 @@ Custo real da escolha: cada pessoa do círculo precisa ter Telegram. No Brasil
 isso é aceitável. Em mercados onde o Telegram é pouco usado, é barreira de
 adoção séria — ver seção 7.
 
+#### Ninguém cria bot. Isso é só da versão pessoal
+
+Na versão pessoal cada um cria o próprio bot no BotFather, e para um produto
+isso seria impeditivo — nenhum consumidor faz isso.
+
+**No produto existe um único bot, da empresa, compartilhado por todos os
+clientes.** O usuário não sabe que bot existe.
+
+O fluxo de vínculo é um toque, usando um recurso do próprio Telegram:
+
+1. o app abre `https://t.me/SeuAppBot?startgroup=<token-do-usuário>`
+2. o Telegram pergunta em qual grupo adicionar — a pessoa escolhe um grupo que
+   **já existe**, tipo "Família"
+3. ao entrar, o Telegram manda `/start <token>` para o grupo
+4. o webhook recebe, lê o token e vincula aquele `chat_id` à conta
+
+Sem BotFather, sem `chat_id`, sem copiar e colar nada. A pessoa toca num botão,
+escolhe o grupo e acabou.
+
+Notas de implementação, para não descobrir tarde:
+
+- **Webhook, não `getUpdates`.** Com um bot só e muitos clientes, polling não
+  serve: `getUpdates` tem um consumidor único e descarta atualizações com mais
+  de 24h. O app pessoal usa `getUpdates` porque é um usuário só.
+- Tratar também o update `my_chat_member`, que dispara quando o bot é adicionado
+  a um grupo. Serve de rede de segurança se o `/start` não chegar.
+- Limites do Telegram: cerca de 30 mensagens por segundo no total e 20 por
+  minuto por grupo. Folgado para este volume, mas precisa de fila quando escalar.
+- **Um bot só é ponto único de falha.** Se ele for sinalizado, todos os clientes
+  perdem o canal de uma vez. É mais um motivo para push ser a base mundial, e
+  não o Telegram.
+
 ### WhatsApp — plano pago, e com uma limitação que muda o desenho
 
 **Só a Cloud API oficial da Meta.** Nada de Baileys ou Evolution API: além de
