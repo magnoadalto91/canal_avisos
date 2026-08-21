@@ -87,6 +87,10 @@ function exec(cmd) {
       }
       return n;
     }
+    case "HGET": {
+      const h = asHash(key);
+      return h.has(cmd[2]) ? h.get(cmd[2]) : null;
+    }
     case "HGETALL": {
       const out = [];
       for (const [f, v] of asHash(key)) out.push(f, v);
