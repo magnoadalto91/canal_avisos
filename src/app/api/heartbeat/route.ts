@@ -109,7 +109,8 @@ async function handle(
   const informativo = !(source === "pwa" && verdict.network === "unknown");
 
   if (informativo) {
-    await recordBeat(user.id, beat);
+    // Config antiga não tem o campo; ausência significa ligado.
+    await recordBeat(user.id, beat, { log: user.logBeats !== false });
   }
 
   // O IP de casa é dinâmico na maioria dos provedores. Toda vez que o SSID

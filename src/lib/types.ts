@@ -67,6 +67,15 @@ export interface UserConfig {
   /** Manda aviso explícito quando nada foi detectado até windowEnd. */
   alertOnNoSignal: boolean;
 
+  /**
+   * Guarda o histórico de sinais recebidos. Serve para depurar a automação e
+   * vira lixo depois que tudo está funcionando.
+   *
+   * Desligar NÃO afeta a detecção: o último sinal, que é o que a decisão usa,
+   * continua sendo gravado sempre. Só a lista deixa de ser alimentada.
+   */
+  logBeats: boolean;
+
   enabled: boolean;
 
   /** sha256 do SSID de casa. Nunca guardamos o nome em claro. */

@@ -24,6 +24,7 @@ export function defaultConfig(id: string, displayName: string): UserConfig {
     windowEnd: "02:00",
     freshnessMinutes: 60,
     alertOnNoSignal: true,
+    logBeats: true, // essencial durante a configuração; dispensável depois
     enabled: false, // só liga depois que o Telegram estiver testado
     targets: [],
     messages: { ...DEFAULT_MESSAGES },
@@ -147,13 +148,24 @@ export async function deleteDevice(userId: string, deviceId: string): Promise<vo
 
 /* ---------- heartbeats ---------- */
 
-export async function recordBeat(userId: string, beat: Heartbeat): Promise<void> {
+/**
+ * O último sinal é gravado SEMPRE, mesmo com o log desligado: é dele que a
+ * decisão de avisar ou não depende. Só a lista de histórico é opcional — ela
+ * serve para depurar a automação e vira lixo depois que tudo funciona.
+ */
+export async function recordBeat(
+  userId: string,
+  beat: Heartbeat,
+  { log = true }: { log?: boolean } = {},
+): Promise<void> {
   const r = redis();
   const payload = JSON.stringify(beat);
-  await Promise.all([
-    r.set(K.lastBeat(userId), payload),
-    r.lpush(K.beatLog(userId), payload),
-  ]);
+
+  await r.set(K.lastBeat(userId), payload);
+
+  if (!log) return;
+
+  await r.lpush(K.beatLog(userId), payload);
   await r.ltrim(K.beatLog(userId), 0, BEAT_LOG_MAX - 1);
 }
 

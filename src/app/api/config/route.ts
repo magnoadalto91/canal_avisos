@@ -60,6 +60,8 @@ export async function PATCH(req: Request) {
 
     if (typeof body.enabled === "boolean") next.enabled = body.enabled;
 
+    if (typeof body.logBeats === "boolean") next.logBeats = body.logBeats;
+
     // O SSID chega em claro, é hasheado e o texto original é descartado.
     if (typeof body.homeSsid === "string") {
       const v = body.homeSsid.trim();

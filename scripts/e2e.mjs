@@ -403,6 +403,53 @@ async function run() {
     saiu.data.network === "away",
     JSON.stringify(saiu.data),
   );
+
+  console.log("\n11. desligar o histórico não desliga a detecção");
+
+  const u8 = await req("/api/user", { method: "POST", body: { displayName: "Gil" } });
+  const key8 = u8.data.userKey;
+  await req("/api/config", {
+    method: "PATCH",
+    key: key8,
+    body: {
+      timezone: "UTC",
+      windowStart: utcHHMM(-30),
+      windowEnd: utcHHMM(+120),
+      homeSsid: "CASA_GIL",
+      logBeats: false,
+      targets: [{ kind: "telegram", chatId: "-1008" }],
+      enabled: true,
+    },
+  });
+  const dev8 = await req("/api/devices", { method: "POST", key: key8, body: { label: "Nord" } });
+  await req("/api/heartbeat?t=" + dev8.data.token + "&event=wifi-connected&ssid=CASA_GIL");
+
+  const gil = await req("/api/status", { key: key8 });
+  check("lista de sinais fica vazia", gil.data.beats.length === 0, JSON.stringify(gil.data.beats));
+  check(
+    "mas o último sinal continua gravado",
+    gil.data.lastBeat?.network === "home",
+    JSON.stringify(gil.data.lastBeat),
+  );
+
+  const antesGil = sent.length;
+  const cronGil = await req("/api/cron/evaluate", { cron: true });
+  check(
+    "e o cron avisa a chegada normalmente",
+    cronGil.data.results.find((r) => r.displayName === "Gil")?.action === "send-home",
+    JSON.stringify(cronGil.data.results.find((r) => r.displayName === "Gil")),
+  );
+  check("mensagem chegou no grupo", sent.length === antesGil + 1);
+
+  // Religar volta a alimentar a lista, sem precisar de mais nada.
+  await req("/api/config", { method: "PATCH", key: key8, body: { logBeats: true } });
+  await req("/api/heartbeat?t=" + dev8.data.token + "&event=periodic&ssid=CASA_GIL");
+  const religado = await req("/api/status", { key: key8 });
+  check(
+    "religar volta a guardar",
+    religado.data.beats.length === 1,
+    JSON.stringify(religado.data.beats.length),
+  );
 }
 
 /* ---------------- orquestração ---------------- */

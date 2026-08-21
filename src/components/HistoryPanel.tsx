@@ -102,7 +102,13 @@ export function HistoryPanel({
           macros estão disparando de verdade.
         </p>
 
-        {sinais.length === 0 ? (
+        {status.config.logBeats === false ? (
+          <div className="banner info" style={{ marginBottom: 0 }}>
+            Histórico desligado nos Ajustes. A detecção segue funcionando
+            normalmente — o último sinal continua sendo gravado, só não fica
+            guardada a lista. Ligue de novo se precisar investigar a automação.
+          </div>
+        ) : sinais.length === 0 ? (
           <p className="empty">Nenhum sinal da automação ainda.</p>
         ) : (
           <>

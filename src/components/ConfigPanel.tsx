@@ -25,6 +25,7 @@ export function ConfigPanel({
     windowEnd: c.windowEnd,
     freshnessMinutes: String(c.freshnessMinutes),
     alertOnNoSignal: c.alertOnNoSignal,
+    logBeats: c.logBeats !== false,
     enabled: c.enabled,
     homeSsid: "",
     messages: { ...c.messages },
@@ -59,6 +60,7 @@ export function ConfigPanel({
         windowEnd: form.windowEnd,
         freshnessMinutes: Number(form.freshnessMinutes),
         alertOnNoSignal: form.alertOnNoSignal,
+        logBeats: form.logBeats,
         enabled: form.enabled,
         messages: form.messages,
       };
@@ -284,6 +286,23 @@ export function ConfigPanel({
               Ligado, o grupo recebe um alerta explícito ao fim da janela.
               Desligado, o aviso é o silêncio: mais elegante, porém depende de
               alguém reparar numa mensagem que não chegou.
+            </span>
+          </span>
+        </label>
+
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={form.logBeats}
+            onChange={(e) => patchField("logBeats", e.target.checked)}
+          />
+          <span>
+            <span className="t-title">Guardar histórico de sinais</span>
+            <span className="t-sub">
+              Serve para depurar a automação do celular e vira lixo depois que
+              tudo está funcionando. Desligar não afeta a detecção: o último
+              sinal, que é o que decide se o grupo é avisado, continua sendo
+              gravado sempre. Ligue de novo se um dia precisar investigar.
             </span>
           </span>
         </label>
