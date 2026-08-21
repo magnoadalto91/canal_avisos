@@ -343,6 +343,66 @@ async function run() {
 
   const semChave = await req("/api/history", { method: "DELETE" });
   check("limpar exige credencial", semChave.status === 401);
+
+  console.log("\n10. troca de banda do wifi não vira saída de casa");
+
+  const u6 = await req("/api/user", { method: "POST", body: { displayName: "Elis" } });
+  const key6 = u6.data.userKey;
+  await req("/api/config", {
+    method: "PATCH",
+    key: key6,
+    body: {
+      timezone: "UTC",
+      windowStart: utcHHMM(-30),
+      windowEnd: utcHHMM(+120),
+      homeSsid: "CASA_ELIS",
+      targets: [{ kind: "telegram", chatId: "-1006" }],
+      enabled: true,
+    },
+  });
+  const dev6 = await req("/api/devices", { method: "POST", key: key6, body: { label: "Moto" } });
+  const t6 = dev6.data.token;
+
+  // A conexão ensina o IP de casa ao servidor.
+  await req("/api/heartbeat?t=" + t6 + "&event=wifi-connected&ssid=CASA_ELIS");
+
+  // Trocar de 2.4 para 5 GHz dispara "desconectado" sem ninguém sair de casa.
+  // A requisição sai pelo próprio wifi, então chega do IP de casa.
+  const banda = await req("/api/heartbeat?t=" + t6 + "&event=wifi-disconnected");
+  check(
+    "desconexão vinda do IP de casa não marca fora",
+    banda.data.network === "home",
+    JSON.stringify(banda.data),
+  );
+
+  const aindaEmCasa = await req("/api/status", { key: key6 });
+  check(
+    "e o estado continua em casa",
+    aindaEmCasa.data.lastBeat?.network === "home",
+    JSON.stringify(aindaEmCasa.data.lastBeat),
+  );
+  const cronElis = await req("/api/cron/evaluate", { cron: true });
+  check(
+    "então o cron ainda confirma a chegada",
+    cronElis.data.results.find((r) => r.displayName === "Elis")?.action === "send-home",
+    JSON.stringify(cronElis.data.results.find((r) => r.displayName === "Elis")),
+  );
+
+  // Quem sai de verdade manda o sinal por outra rede, e o IP não bate.
+  const u7 = await req("/api/user", { method: "POST", body: { displayName: "Fabio" } });
+  const key7 = u7.data.userKey;
+  await req("/api/config", {
+    method: "PATCH",
+    key: key7,
+    body: { timezone: "UTC", homeSsid: "CASA_FABIO", targets: [{ kind: "telegram", chatId: "-1007" }] },
+  });
+  const dev7 = await req("/api/devices", { method: "POST", key: key7, body: { label: "Zen" } });
+  const saiu = await req("/api/heartbeat?t=" + dev7.data.token + "&event=wifi-disconnected");
+  check(
+    "sem IP de casa conhecido, desconexão marca fora",
+    saiu.data.network === "away",
+    JSON.stringify(saiu.data),
+  );
 }
 
 /* ---------------- orquestração ---------------- */

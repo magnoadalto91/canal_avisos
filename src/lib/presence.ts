@@ -27,6 +27,20 @@ export function judge(input: {
   const { user, source, event, ssid, ipHash, connectionType } = input;
 
   if (event === "wifi-disconnected") {
+    // Roteador de banda dupla (2.4 e 5 GHz) dispara "desconectou" toda vez que
+    // o aparelho troca de banda, sem ninguém ter saído de casa. Se a requisição
+    // chegou do IP de casa, ela é a própria prova de que ainda estamos na rede:
+    // pela rede móvel o endereço seria da operadora.
+    //
+    // Isso não enfraquece a detecção de saída. Quem sai de verdade manda esse
+    // sinal pelos dados móveis — ou não manda nada, e aí o frescor resolve.
+    if (ipHash && user.homeIpHash && ipHash === user.homeIpHash) {
+      return {
+        network: "home",
+        reason: "trocou de banda do wifi, mas continua no IP de casa",
+        relearnHomeIp: false,
+      };
+    }
     return {
       network: "away",
       reason: "automação avisou que saiu do wifi",
